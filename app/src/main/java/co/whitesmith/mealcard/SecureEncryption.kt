@@ -31,7 +31,7 @@ class SecureEncryption(
 
         const val ANDROID_KEY_STORE = "AndroidKeyStore"
         const val AES_MODE = "AES/GCM/NoPadding"
-        val FIXED_IV = "0jz/9ozl9RGJMWgU+LECelJYvdhpA0cSi/vWkqOKOV8=".toByteArray()
+        val FIXED_IV = "0jz/9ozl9RGJ".toByteArray()
 
         // Legacy: pre-M (before API level 23)
         private val RSA_PROVIDER = "AndroidOpenSSL"
