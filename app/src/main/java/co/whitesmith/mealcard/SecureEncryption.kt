@@ -50,16 +50,18 @@ class SecureEncryption(
     private val rsaEndDate: Calendar
 
     init {
-        keyStore = createKeyStore()
+        if (sharedPreferences == null) {
+            sharedPreferences = context.getSharedPreferences(SHARED_PREFENCE_NAME, Context.MODE_PRIVATE)
+        }
+        preferences = sharedPreferences!!
 
         rsaStartDate = Calendar.getInstance()
         rsaEndDate = Calendar.getInstance()
         rsaEndDate.add(Calendar.YEAR, 10)
 
-        if (sharedPreferences == null) {
-            sharedPreferences = context.getSharedPreferences(SHARED_PREFENCE_NAME, Context.MODE_PRIVATE)
-        }
-        preferences = sharedPreferences!!
+        keyStore = KeyStore.getInstance(ANDROID_KEY_STORE)
+        keyStore.load(null) //null is ok for AndroidKeyStore
+        setupKeyStore()
     }
 
     /**
@@ -110,10 +112,7 @@ class SecureEncryption(
         }
     }
 
-    private fun createKeyStore(): KeyStore {
-        val keyStore = KeyStore.getInstance(ANDROID_KEY_STORE)
-        keyStore.load(null) //null is ok for AndroidKeyStore
-
+    private fun setupKeyStore(): KeyStore {
         if (!keyStore.containsAlias(keyAlias)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 generateAliasKey()
