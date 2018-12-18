@@ -34,8 +34,6 @@ class MainActivity : AppCompatActivity() {
 
     private val TAG = "MainActivity"
 
-    private val AndroidKeyStore = "AndroidKeyStore"
-    private val AES_MODE = "AES/GCM/NoPadding"
     private val KEY_ALIAS = "Optimize"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,115 +51,12 @@ class MainActivity : AppCompatActivity() {
             //val secretKeyEncoded = secretKey.encoded
             //Log.i(TAG, "Example AES-512 random key: " + Util.bytesToHex(key))
 
-            val keyStore: KeyStore = KeyStore.getInstance(AndroidKeyStore)
-            keyStore.load(null)
-
-            val aliases = keyStore.aliases()
-            for (alias in aliases) {
-                Log.i("KeyStore Alias", alias)
-            }
-
             val input = "OMG, this is working!"
-            val FIXED_IV = "fixed_direct".toByteArray()
+            val secureEncryption = SecureEncryption(this, KEY_ALIAS)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (!keyStore.containsAlias(KEY_ALIAS)) {
-                    // Generating the key
-                    val keyPairGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, AndroidKeyStore)
-                    keyPairGenerator.init(
-                            KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                                    .setRandomizedEncryptionRequired(false)
-                                    .build()
-                    )
-                    keyPairGenerator.generateKey()
-                }
-
-                val secretKey = keyStore.getKey(KEY_ALIAS, null)
-                //AndroidKeyStoreRSAPrivateKey
-
-                val cipher = Cipher.getInstance(AES_MODE)
-
-                // Encrypt
-                try {
-                    cipher.init(Cipher.ENCRYPT_MODE, secretKey, GCMParameterSpec(128, FIXED_IV))
-                }
-                catch (e: InvalidKeyException) {
-                    // Delete alias
-                    Log.i(TAG, e.localizedMessage)
-                    keyStore.deleteEntry(KEY_ALIAS)
-
-                    // Repeat
-                    if (!keyStore.containsAlias(KEY_ALIAS)) {
-                        // Generating the key
-                        val keyPairGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, AndroidKeyStore)
-                        keyPairGenerator.init(
-                                KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                                        .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                                        .setRandomizedEncryptionRequired(false)
-                                        .build()
-                        )
-                        keyPairGenerator.generateKey()
-                    }
-
-                    val secretKey = keyStore.getKey(KEY_ALIAS, null)
-
-                    //AndroidKeyStoreRSAPrivateKey
-
-                    val cipher = Cipher.getInstance(AES_MODE)
-
-                    cipher.init(Cipher.ENCRYPT_MODE, secretKey, GCMParameterSpec(128, FIXED_IV))
-
-                    val encodedBytes = cipher.doFinal(input.toByteArray())
-                    Log.i(TAG, "Encrypted: " + Base64.encodeToString(encodedBytes, Base64.DEFAULT))
-                    val encrypted = Base64.encodeToString(encodedBytes, Base64.DEFAULT)
-
-                    // Decrypt
-                    cipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(128, FIXED_IV))
-                    val decode = Base64.decode(encrypted, Base64.DEFAULT)
-                    val decodedBytes = cipher.doFinal(decode)
-                    Log.i(TAG, "Decrypted: " + String(decodedBytes, Charsets.UTF_8))
-
-                    return@setOnClickListener
-                }
-
-                val encodedBytes = cipher.doFinal(input.toByteArray())
-                Log.i(TAG, "Encrypted: " + Base64.encodeToString(encodedBytes, Base64.DEFAULT))
-                val encrypted = Base64.encodeToString(encodedBytes, Base64.DEFAULT)
-
-                // Decrypt
-                cipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(128, FIXED_IV))
-                val decode = Base64.decode(encrypted, Base64.DEFAULT)
-                val decodedBytes = cipher.doFinal(decode)
-                Log.i(TAG, "Decrypted: " + String(decodedBytes, Charsets.UTF_8))
-            }
-            else {
-                if (!keyStore.containsAlias(KEY_ALIAS)) {
-                    val start = Calendar.getInstance()
-                    val end = Calendar.getInstance()
-                    end.add(Calendar.YEAR, 1)
-
-                    val spec = KeyPairGeneratorSpec.Builder(this)
-                            .setAlias(KEY_ALIAS)
-                            .setSubject(X500Principal("CN=" + KEY_ALIAS))
-                            .setSerialNumber(BigInteger.TEN)
-                            .setStartDate(start.time)
-                            .setEndDate(end.time)
-                            .build()
-
-                    val generator = KeyPairGenerator.getInstance("RSA", AndroidKeyStore)
-                    generator.initialize(spec)
-                    generator.generateKeyPair()
-                }
-
-                generateAESKey(this, keyStore)
-                val encrypted = encrypt(this, input.toByteArray(), keyStore)
-                Log.i(TAG, "Encrypted: " + encrypted)
-
-                val decode = Base64.decode(encrypted, Base64.DEFAULT)
-                val decodedBytes = decrypt(this, decode, keyStore)
-                Log.i(TAG, "Decrypted: " + String(decodedBytes, Charsets.UTF_8))
-            }
+            val securedInput = secureEncryption.encrypt(input)
+            Log.i(TAG, securedInput)
+            Log.i(TAG, secureEncryption.decrypt(securedInput))
 
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show()
